@@ -1,5 +1,4 @@
 # Import necessary libraries
-# Notwendige Bibliotheken importieren
 from pydoc import cli
 from pyautogui import *
 import pyautogui
@@ -9,9 +8,33 @@ import random
 import win32api, win32con
 import pydirectinput
 
+# Static Variables for user
+bag_capacity: int = 270
+max_wait_time: float = 10.0
+
+# Initialize counters and flags
+fish_counter: int = 0 # The number of fish caught
+enable_fishing: bool = False # Flag to enable/disable fishing
+reeling_in: bool = False # Flag to check if currently reeling in a fish
+line_cast: bool = False # Flag to check if the line is cast
+
+
+# Function to toggle fishing on/off
+def toggle_fishing(_):
+	global enable_fishing
+	enable_fishing = not enable_fishing
+	print(f'Fishing is now {"enabled" if enable_fishing else "disabled"}')
+
+# Bind 'f' key to toggle fishing
+keyboard.on_press_key('q', toggle_fishing)
+
+# Function to disable the casting line after 10 seconds
+def cast_disable():
+	if check_air_bubbles_on_screen() == False and reeling_in == False:
+		global line_cast
+		line_cast = False
 
 # Function to simulate a mouse click at given coordinates
-# Funktion, um einen Mausklick an gegebenen Koordinaten zu simulieren
 def click(x, y):
 	win32api.SetCursorPos((x, y))
 	time.sleep(random.uniform(0.001, 0.005))
@@ -21,7 +44,6 @@ def click(x, y):
 
 
 # Function to simulate a safe mouse click using pydirectinput
-# Funktion, um einen sicheren Mausklick mit pydirectinput zu simulieren
 def safety_click(x, y):
 	pydirectinput.moveTo(x, y)
 	time.sleep(random.uniform(0.01, 0.05))
@@ -29,22 +51,15 @@ def safety_click(x, y):
 
 
 # Function to simulate a double mouse click at given coordinates
-# Funktion, um einen Doppelklick an gegebenen Koordinaten zu simulieren
 def double_click(x, y):
 	click(x, y)
 	time.sleep(random.uniform(0.02, 0.025))
 	click(x, y)
 
 
-# Function to get a counter value
-# Funktion, um einen Zählerwert zu erhalten
-def get_counter():
-	counter = 150
-	return counter
-
-
-# Function to check for air bubbles on the screen
-# Funktion, um nach Luftblasen auf dem Bildschirm zu suchen
+"""
+	Function to check for air bubbles on the screen
+"""
 def check_air_bubbles_on_screen():
 	s = pyautogui.screenshot()
 	for x in range(770, 1160):
@@ -61,8 +76,9 @@ def check_air_bubbles_on_screen():
 				return True
 
 
-# Function to simulate a random throw click
-# Funktion, um einen zufälligen Wurfklick zu simulieren
+"""
+	Function to simulate a random throw click
+"""
 def click_random_throw():
 	x, y = random.randint(960, 970), random.randint(520, 530)
 	win32api.SetCursorPos((x, y))
@@ -73,60 +89,56 @@ def click_random_throw():
 
 
 # Function to simulate a double random throw click
-# Funktion, um einen doppelten zufälligen Wurfklick zu simulieren
 def double_click_random_throw():
 	click_random_throw()
 	time.sleep(random.uniform(0.02, 0.025))
 	click_random_throw()
 
 
-# Initialize counters and flags
-# Zähler und Flags initialisieren
-counter = 0
-fish_counter = 0
-fish_found = False
-
 # Main loop to check for fish and bubbles until 'q' is pressed
-# Hauptloop, um nach Fischen und Blasen zu suchen, bis 'q' gedrückt wird
-while keyboard.is_pressed('q') == False:
-	# Check if fish is found
-	# Überprüfen, ob ein Fisch gefunden wurde
-	if pyautogui.pixel(847, 820)[0] == 255 or pyautogui.pixel(860,
-	                                                          800)[0] == 255:
-		# Reel in the fish
-		# Den Fisch einholen
-		click_random_throw()
-		counter = get_counter()
-		fish_found = True
-	# Increase fish counter if found
-	# Fischzähler erhöhen, wenn gefunden
-	if fish_found == True:
-		if pyautogui.pixel(830, 800) != (83, 250, 83):
-			fish_counter += 1
-			print('Fish caught: ' + str(fish_counter)
-			      )  # Translated "Fische gefangen" to "Fish caught"
-			fish_found = False
-			double_click_random_throw()
-	# If fish not found, check for air bubbles
-	# Wenn kein Fisch gefunden wurde, nach Luftblasen suchen
-	if fish_found == False:
-		if check_air_bubbles_on_screen() == True:
-			# Reel in the fish
-			# Den Fisch einholen
-			click_random_throw()
-			counter = get_counter()
-			fish_found = True
-	if counter == 0:
-		# Cast or reel in the fishing rod
-		# Angel auswerfen oder einholen
+while True:
+	# Check if fishing is enabled
+	if enable_fishing == False:
+		time.sleep(0.1)
+		continue
+
+	# Check if the click bar is in a certain pixel range
+	# This means we are reeling in a fish currently and need to click
+	if pyautogui.pixel(925, 780)[0] == 255 :# or pyautogui.pixel(860, 800)[0] == 255
 		double_click_random_throw()
-		counter = get_counter()
-	# If inventory is full, sell
-	# Wenn das Inventar voll ist, verkaufen
-	if fish_counter == 2000:
-		print(
-		    'Inventory full, selling...'
-		)  # Translated "Inventar voll, verkaufe..." to "Inventory full, selling..."
-		exit()
-	counter -= 1
+		reeling_in = True
+		pass
+
+	# Check if we are currently reeling in a fish
+	if reeling_in == True:
+		# Check screen to see if fish is caught
+		if pyautogui.pixel(830, 800) != (83, 250, 83):
+			reeling_in = False
+			line_cast = False
+			print(f'Fish caught: {fish_counter}')
+			fish_counter += 1
+			time.sleep(0.1)
+			click_random_throw()
+			pass # Start fishing again
+	
+	else: # We are not reeling in a fish
+		# Check for air bubbles on screen
+		if line_cast == True:
+			if check_air_bubbles_on_screen() == True:
+				# Reel in the fish
+				click_random_throw()
+				reeling_in = True
+				pass
+		else:
+			line_cast = True
+			# Cast the line
+			click_random_throw()
+			# Wait maximum of 10 seconds for the fish to bite in a new thread and set line_cast to False
+			# threading.Timer(max_wait_time, cast_disable).start()
+
+	# Exit program if we are at capacity
+	if fish_counter >= bag_capacity:
+		print('Inventory full, selling...')
+		break
+
 	time.sleep(0.025)
