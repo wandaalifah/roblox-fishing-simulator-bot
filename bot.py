@@ -25,7 +25,7 @@ def click_random_throw():
 
 # Function to simulate reeling the fish with a set number of clicks
 def reel_in_fish():
-    for _ in range(9):  # Adjust the number of clicks for reeling
+    for _ in range(8):  # Adjust the number of clicks for reeling
         click_random_throw()
         time.sleep(random.uniform(0.5, 0.7))  # Adjust delay between each reel click
 
